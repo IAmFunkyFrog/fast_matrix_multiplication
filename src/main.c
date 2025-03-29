@@ -155,56 +155,5 @@ int main(int argc, char *argv[]) {
     if (print_elapsed_time)
         printf("%.3f\n", time_in_seconds);
 
-
-/*
-    {
-        double_matrix_t A_normal = matrix_convert_to_normal(A);
-        double_matrix_t B_normal = matrix_convert_to_normal(B);
-        double_matrix_t A_blocked = matrix_convert_to_upper_triangular_blocked(A, block_size);
-        double_matrix_t B_blocked = matrix_convert_to_normal_blocked(B, block_size);
-        double_matrix_t out1 = matrix_allocate(A_normal.nrows, B_normal.ncols);
-        double_matrix_t out2 = matrix_allocate(A_normal.nrows, B_normal.ncols);
-        double_matrix_t out3 = matrix_allocate(A_normal.nrows, B_normal.ncols);
-        double_matrix_t out4 = matrix_allocate(A_normal.nrows, B_normal.ncols);
-        double_matrix_t out5 = matrix_allocate(A_normal.nrows, B_normal.ncols);
-
-        printf("Upper triangular on normal, OMP, block:\n");
-        TIME_ME(
-            matrix_omp_mult_block3(A, B, out4, block_size)
-        );
-
-        printf("Blocked matrices multiplication, block:\n");
-        TIME_ME(
-            matrix_mult_block3(A_blocked, B_blocked, out5, block_size)
-        );
-
-        printf("Upper triangular on normal, block:\n");
-        TIME_ME(
-            matrix_mult_block3(A, B, out3, block_size)
-        );
-
-        printf("Normal, no block:\n");
-        TIME_ME(
-            matrix_mult3(A_normal, B_normal, out1)
-        );
-
-        printf("Normal, block:\n");
-        TIME_ME(
-            matrix_mult_block3(A_normal, B_normal, out2, block_size)
-        );
-
-        if (!verify(out1, out2))
-            printf("Block multiplication failed\n");
-
-        if (!verify(out1, out3))
-            printf("Block multiplication for upper triangular failed failed\n");
-
-        if (!verify(out1, out4))
-            printf("OMP failed\n");
-        
-        if (!verify(out1, out5))
-            printf("Blocked matrices failed\n");
-    }
-*/
     return 0;
 }
