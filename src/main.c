@@ -18,13 +18,22 @@
 
 #define PRECISION 1000000ll
 
-int verify_multiplication(double_matrix_t expected, double_matrix_t result) {
+int verify(double_matrix_t expected, double_matrix_t result) {
     for (int i = 0; i < result.nrows; i++)
         for (int j = 0; j < result.ncols; j++)
-            if (((long long) matrix_get(expected, i, j) * PRECISION) != ((long long) matrix_get(result, i, j) * PRECISION)) {
-                printf("MATRIX NOT SAME: %.3f != %.3f\n", matrix_get(expected, i, j), matrix_get(result, i, j));
+            if (((long long) matrix_get_or_zero(expected, i, j) * PRECISION) != ((long long) matrix_get_or_zero(result, i, j) * PRECISION)) {
+                printf("MATRIX NOT SAME: %.3f != %.3f\n", matrix_get_or_zero(expected, i, j), matrix_get_or_zero(result, i, j));
                 return 0;
             }
+    return 1;
+}
+
+int print(double_matrix_t matrix) {
+    for (int i = 0; i < matrix.nrows; i++) {
+        for (int j = 0; j < matrix.ncols; j++)
+            printf("%0.3f ", matrix_get_or_zero(matrix, i, j));
+        printf("\n");
+    }
     return 1;
 }
 
@@ -40,14 +49,22 @@ int main(int argc, char *argv[]) {
     {
         double_matrix_t A_normal = matrix_convert_to_normal(A);
         double_matrix_t B_normal = matrix_convert_to_normal(B);
+        double_matrix_t A_blocked = matrix_convert_to_upper_triangular_blocked(A, block_size);
+        double_matrix_t B_blocked = matrix_convert_to_normal_blocked(B, block_size);
         double_matrix_t out1 = matrix_allocate(A_normal.nrows, B_normal.ncols);
         double_matrix_t out2 = matrix_allocate(A_normal.nrows, B_normal.ncols);
         double_matrix_t out3 = matrix_allocate(A_normal.nrows, B_normal.ncols);
         double_matrix_t out4 = matrix_allocate(A_normal.nrows, B_normal.ncols);
+        double_matrix_t out5 = matrix_allocate(A_normal.nrows, B_normal.ncols);
 
         printf("Upper triangular on normal, OMP, block:\n");
         TIME_ME(
             matrix_omp_mult_block3(A, B, out4, block_size)
+        );
+
+        printf("Blocked matrices multiplication, block:\n");
+        TIME_ME(
+            matrix_mult_block3(A_blocked, B_blocked, out5, block_size)
         );
 
         printf("Upper triangular on normal, block:\n");
@@ -64,14 +81,18 @@ int main(int argc, char *argv[]) {
         TIME_ME(
             matrix_mult_block3(A_normal, B_normal, out2, block_size)
         );
-        if (!verify_multiplication(out1, out2))
+
+        if (!verify(out1, out2))
             printf("Block multiplication failed\n");
 
-        if (!verify_multiplication(out1, out3))
+        if (!verify(out1, out3))
             printf("Block multiplication for upper triangular failed failed\n");
 
-        if (!verify_multiplication(out1, out4))
-            printf("Block multiplication OMP failed\n");
+        if (!verify(out1, out4))
+            printf("OMP failed\n");
+        
+        if (!verify(out1, out5))
+            printf("Blocked matrices failed\n");
     }
 
     return 0;

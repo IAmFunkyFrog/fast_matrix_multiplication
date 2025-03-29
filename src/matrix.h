@@ -61,6 +61,24 @@ static inline double matrix_add_NORMAL(double_matrix_t matrix, int i, int j, dou
     plain[i * matrix.ncols + j] += val;
 }
 
+// Retunrs subblock corresponding to given indices
+static inline double_matrix_t matrix_blocked_subblock(double_matrix_t matrix, int i, int j) {
+    assert(matrix.type == UPPER_TRIANGULAR_BLOCKED || matrix.type == NORMAL_BLOCKED);
+
+    double *plain = (double *) matrix.data;
+    int block_size = matrix.minfo.blocked_info.block_size;
+    int blocks_in_row = matrix.minfo.blocked_info.blocks_in_row;
+    int block_i = i / block_size;
+    int block_j = j / block_size;
+    double *plain_block = plain + (block_i * blocks_in_row + block_j) * (block_size * block_size);
+    return (double_matrix_t) {
+        .type = NORMAL,
+        .ncols = block_size,
+        .nrows = block_size,
+        .data = plain_block
+    };
+}
+
 static inline double matrix_get(double_matrix_t matrix, int i, int j) {
     assert (i >= 0 && i < matrix.nrows && j >= 0 && j <= matrix.ncols);
     assert (matrix_index_in_matrix(matrix, i, j));
@@ -75,17 +93,8 @@ static inline double matrix_get(double_matrix_t matrix, int i, int j) {
     case UPPER_TRIANGULAR_BLOCKED:
     case NORMAL_BLOCKED: {
         int block_size = matrix.minfo.blocked_info.block_size;
-        int blocks_in_row = matrix.minfo.blocked_info.blocks_in_row;
-        int block_i = i / block_size;
-        int block_j = j / block_size;
-        double *plain_block = plain + (block_i * blocks_in_row + block_j) * (block_size * block_size);
         return matrix_get(
-            (double_matrix_t) {
-                .type = NORMAL,
-                .ncols = block_size,
-                .nrows = block_size,
-                .data = plain_block
-            },
+            matrix_blocked_subblock(matrix, i, j),
             i % block_size,
             j % block_size
         );
@@ -117,19 +126,8 @@ static inline void matrix_set(double_matrix_t matrix, int i, int j, double value
     case UPPER_TRIANGULAR_BLOCKED:
     case NORMAL_BLOCKED: {
         int block_size = matrix.minfo.blocked_info.block_size;
-        assert(block_size != 0);
-        int blocks_in_row = matrix.minfo.blocked_info.blocks_in_row;
-        assert(blocks_in_row != 0);
-        int block_i = i / block_size;
-        int block_j = j / block_size;
-        double *plain_block = plain + (block_i * blocks_in_row + block_j) * (block_size * block_size);
         matrix_set(
-            (double_matrix_t) {
-                .type = NORMAL,
-                .ncols = block_size,
-                .nrows = block_size,
-                .data = plain_block
-            },
+            matrix_blocked_subblock(matrix, i, j),
             i % block_size,
             j % block_size,
             value

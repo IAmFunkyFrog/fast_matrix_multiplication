@@ -52,6 +52,9 @@ void matrix_mult_block3_UPPER_TRIANGULAR_COLS_NORMAL_specialization(
     for (int block_start_i = 0; block_start_i < out.nrows; block_start_i += block_max_size) {
         for (int block_start_j = 0; block_start_j < out.ncols; block_start_j += block_max_size) {
             for (int block_start_k = 0; block_start_k < m2.nrows; block_start_k += block_max_size) {
+                // Since m1 is UPPER_TRIANGULAR we can skip all blocks when block_start_i > block_start_k
+                // (they are zeroed)
+                if (block_start_i > block_start_k) continue;
                 for (int i = block_start_i; i < MIN(out.nrows, block_start_i + block_max_size); i++) {
                     for (int j = block_start_j; j < MIN(out.ncols, block_start_j + block_max_size); j++) {
                         double val = matrix_get(out, i, j);
@@ -62,6 +65,35 @@ void matrix_mult_block3_UPPER_TRIANGULAR_COLS_NORMAL_specialization(
                         for (int k = MAX(i, block_start_k); k < MIN(m2.nrows, block_start_k + block_max_size); k++)
                             val += matrix_get_UPPER_TRIANGULAR(m1, i, k) * matrix_get_NORMAL(m2, k, j);
                         matrix_set(out, i, j, val);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TODO we can make better specilazation: make matrix_get/set more optimized
+void matrix_mult_block3_UPPER_TRIANGULAR_BLOCKED_NORMAL_BLOCKED_specialization(
+    double_matrix_t m1, double_matrix_t m2, double_matrix_t out, int block_max_size
+) {
+    assert(m1.type == UPPER_TRIANGULAR_BLOCKED && m2.type == NORMAL_BLOCKED);
+    assert(m1.minfo.blocked_info.block_size == block_max_size);
+    assert(m2.minfo.blocked_info.block_size == block_max_size);
+
+    for (int block_start_i = 0; block_start_i < out.nrows; block_start_i += block_max_size) {
+        for (int block_start_j = 0; block_start_j < out.ncols; block_start_j += block_max_size) {
+            for (int block_start_k = 0; block_start_k < m2.nrows; block_start_k += block_max_size) {
+                // Since m1 is UPPER_TRIANGULAR we can skip all blocks when block_start_i > block_start_k
+                // (they are zeroed)
+                if (block_start_i > block_start_k) continue;
+                double_matrix_t m1_subblock = matrix_blocked_subblock(m1, block_start_i, block_start_k);
+                double_matrix_t m2_subblock = matrix_blocked_subblock(m2, block_start_k, block_start_j);
+                for (int i = 0; i < block_max_size; i++) {
+                    for (int j = 0; j < block_max_size; j++) {
+                        double val = matrix_get(out, block_start_i + i, block_start_j + j);
+                        for (int k = 0; k < block_max_size; k++)
+                            val += matrix_get_NORMAL(m1_subblock, i, k) * matrix_get_NORMAL(m2_subblock, k, j);
+                        matrix_set(out, block_start_i + i, block_start_j + j, val);
                     }
                 }
             }
@@ -133,6 +165,8 @@ void matrix_mult_block3(double_matrix_t m1, double_matrix_t m2, double_matrix_t 
     // FIXME rewrite with X macro
     if (m1.type == UPPER_TRIANGULAR_COLS && m2.type == NORMAL) {
         matrix_mult_block3_UPPER_TRIANGULAR_COLS_NORMAL_specialization(m1, m2, out, block_max_size);
+    } else if (m1.type == UPPER_TRIANGULAR_BLOCKED && m2.type == NORMAL_BLOCKED) {
+        matrix_mult_block3_UPPER_TRIANGULAR_BLOCKED_NORMAL_BLOCKED_specialization(m1, m2, out, block_max_size);
     } else {
         fprintf(stderr, "Unknown specializtion for matrices of given types\n");
         matrix_mult_block3_no_specialization(m1, m2, out, block_max_size);
