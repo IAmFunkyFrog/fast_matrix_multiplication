@@ -23,10 +23,22 @@ static inline int matrix_index_in_matrix(double_matrix_t matrix, int i, int j) {
     if (j >= matrix.ncols || j < 0) return 0;
 
     if (matrix.type == NORMAL) return 1;
-    if (matrix.type == UPPER_TRIANGULAR_COLS && i >= j) return 1;
-    if (matrix.type == LOWER_TRIANGULAR_COLS && i <= j) return 1;
+    if (matrix.type == UPPER_TRIANGULAR_COLS && i <= j) return 1;
+    if (matrix.type == LOWER_TRIANGULAR_COLS && i >= j) return 1;
 
     return 0;
+}
+
+// TODO unify with matrix_get
+static inline double matrix_get_UPPER_TRIANGULAR(double_matrix_t matrix, int i, int j) {
+    double *plain = (double *) matrix.data;
+    return plain[j * (j + 1) / 2 + i];
+}
+
+// TODO unify with matrix_get
+static inline double matrix_get_NORMAL(double_matrix_t matrix, int i, int j) {
+    double *plain = (double *) matrix.data;
+    return plain[i * matrix.ncols + j];
 }
 
 static inline double matrix_get(double_matrix_t matrix, int i, int j) {

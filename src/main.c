@@ -15,11 +15,23 @@
         printf("Code time %.3f in seconds\n", seconds); \
     }
 
+#define PRECISION 1000000ll
+
+int verify_multiplication(double_matrix_t expected, double_matrix_t result) {
+    for (int i = 0; i < result.nrows; i++)
+        for (int j = 0; j < result.ncols; j++)
+            if (((long long) matrix_get(expected, i, j) * PRECISION) != ((long long) matrix_get(result, i, j) * PRECISION)) {
+                printf("MATRIX NOT SAME: %.3f != %.3f\n", matrix_get(expected, i, j), matrix_get(result, i, j));
+                return 0;
+            }
+    return 1;
+}
+
 int main(int argc, char *argv[]) {
     int dimension_size = DEFAULT_DIM_SIZE;
     int block_size = DEFAULT_BLOCK_SIZE;
     double_matrix_t A = matrix_allocate_upper_triangular_cols(dimension_size);
-    double_matrix_t B = matrix_allocate_lower_triangular_cols(dimension_size);
+    double_matrix_t B = matrix_allocate(dimension_size, dimension_size);
 
     matrix_fill_random(A);
     matrix_fill_random(B);
@@ -29,6 +41,12 @@ int main(int argc, char *argv[]) {
         double_matrix_t B_normal = matrix_convert_to_normal(B);
         double_matrix_t out1 = matrix_allocate(A_normal.nrows, B_normal.ncols);
         double_matrix_t out2 = matrix_allocate(A_normal.nrows, B_normal.ncols);
+        double_matrix_t out3 = matrix_allocate(A_normal.nrows, B_normal.ncols);
+
+        printf("Upper triangular on normal, block:\n");
+        TIME_ME(
+            matrix_mult_block3(A, B, out3, block_size)
+        );
 
         printf("Normal, no block:\n");
         TIME_ME(
@@ -40,10 +58,11 @@ int main(int argc, char *argv[]) {
             matrix_mult_block3(A_normal, B_normal, out2, block_size)
         );
 
-        for (int i = 0; i < out1.nrows; i++)
-            for (int j = 0; j < out1.ncols; j++)
-                if (((int) matrix_get(out1, i, j) * 100) != ((int) matrix_get(out2, i, j) * 100))
-                    printf("MATRIX NOT SAME: %.3f != %.3f\n", matrix_get(out1, i, j), matrix_get(out2, i, j));
+        if (!verify_multiplication(out1, out2))
+            printf("Block multiplication failed\n");
+
+        if (!verify_multiplication(out1, out3))
+            printf("Block multiplication for upper triangular failed failed\n");
     }
 
     return 0;
