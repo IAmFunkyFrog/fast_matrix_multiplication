@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <omp.h>
 
 // TODO add NORMAL_COLUMNS type
 typedef enum {
@@ -39,6 +40,13 @@ static inline double matrix_get_UPPER_TRIANGULAR(double_matrix_t matrix, int i, 
 static inline double matrix_get_NORMAL(double_matrix_t matrix, int i, int j) {
     double *plain = (double *) matrix.data;
     return plain[i * matrix.ncols + j];
+}
+
+// TODO unify with matrix_set
+static inline double matrix_add_NORMAL(double_matrix_t matrix, int i, int j, double val) {
+    double *plain = (double *) matrix.data;
+    #pragma omp atomic
+    plain[i * matrix.ncols + j] += val;
 }
 
 static inline double matrix_get(double_matrix_t matrix, int i, int j) {
@@ -147,6 +155,7 @@ void matrix_fill_random(double_matrix_t matrix);
 
 void matrix_mult3(double_matrix_t m1, double_matrix_t m2, double_matrix_t out);
 void matrix_mult_block3(double_matrix_t m1, double_matrix_t m2, double_matrix_t out, int block_max_size);
+void matrix_omp_mult_block3(double_matrix_t m1, double_matrix_t m2, double_matrix_t out, int block_max_size);
 
 static inline double_matrix_t matrix_mult2(double_matrix_t m1, double_matrix_t m2) {
     double_matrix_t out = matrix_allocate(m1.nrows, m2.ncols);

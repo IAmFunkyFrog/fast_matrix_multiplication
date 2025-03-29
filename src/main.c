@@ -2,16 +2,17 @@
 #include <stdlib.h>
 #include "matrix.h"
 #include <time.h>
+#include <omp.h>
 
 #define DEFAULT_DIM_SIZE 2880
 #define DEFAULT_BLOCK_SIZE (DEFAULT_DIM_SIZE / 16)
 
 #define TIME_ME(CODE) \
     { \
-        clock_t start = clock(); \
+        double start = omp_get_wtime();; \
         CODE; \
-        clock_t end = clock(); \
-        float seconds = (float)(end - start) / CLOCKS_PER_SEC; \
+        double end = omp_get_wtime(); \
+        double seconds = end - start; \
         printf("Code time %.3f in seconds\n", seconds); \
     }
 
@@ -42,6 +43,12 @@ int main(int argc, char *argv[]) {
         double_matrix_t out1 = matrix_allocate(A_normal.nrows, B_normal.ncols);
         double_matrix_t out2 = matrix_allocate(A_normal.nrows, B_normal.ncols);
         double_matrix_t out3 = matrix_allocate(A_normal.nrows, B_normal.ncols);
+        double_matrix_t out4 = matrix_allocate(A_normal.nrows, B_normal.ncols);
+
+        printf("Upper triangular on normal, OMP, block:\n");
+        TIME_ME(
+            matrix_omp_mult_block3(A, B, out4, block_size)
+        );
 
         printf("Upper triangular on normal, block:\n");
         TIME_ME(
@@ -57,12 +64,14 @@ int main(int argc, char *argv[]) {
         TIME_ME(
             matrix_mult_block3(A_normal, B_normal, out2, block_size)
         );
-
         if (!verify_multiplication(out1, out2))
             printf("Block multiplication failed\n");
 
         if (!verify_multiplication(out1, out3))
             printf("Block multiplication for upper triangular failed failed\n");
+
+        if (!verify_multiplication(out1, out4))
+            printf("Block multiplication OMP failed\n");
     }
 
     return 0;

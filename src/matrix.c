@@ -75,6 +75,40 @@ void matrix_mult_block3_UPPER_TRIANGULAR_COLS_NORMAL_specialization(
     }
 }
 
+void matrix_omp_mult_block3_UPPER_TRIANGULAR_COLS_NORMAL_specialization(
+    double_matrix_t m1, double_matrix_t m2, double_matrix_t out, int block_max_size
+) {
+    assert(m1.type == UPPER_TRIANGULAR_COLS && m2.type == NORMAL && out.type == NORMAL);
+
+    #pragma omp parallel
+    #pragma omp single
+    {
+    for (int block_start_i = 0; block_start_i < out.nrows; block_start_i += block_max_size) {
+        for (int block_start_j = 0; block_start_j < out.ncols; block_start_j += block_max_size) {
+            for (int block_start_k = 0; block_start_k < m2.nrows; block_start_k += block_max_size) {
+                #pragma omp task
+                #pragma omp private(block_start_i, block_start_j, block_start_k)
+                {
+                for (int i = block_start_i; i < MIN(out.nrows, block_start_i + block_max_size); i++) {
+                    for (int j = block_start_j; j < MIN(out.ncols, block_start_j + block_max_size); j++) {
+                        double val = 0;
+                        // Note: use k = MAX(i, block_start_k) because m1 is UPPER TRIANGULAR matrix,
+                        // and all k < i are 0
+                        // TODO might be optimized more if we simply skip blocks were
+                        // MAX(i, block_start_k) >= MIN(m2.nrows, block_start_k + block_max_size)
+                        for (int k = MAX(i, block_start_k); k < MIN(m2.nrows, block_start_k + block_max_size); k++)
+                            val += matrix_get_UPPER_TRIANGULAR(m1, i, k) * matrix_get_NORMAL(m2, k, j);
+                        matrix_add_NORMAL(out, i, j, val);
+                    }
+                }
+                }
+            }
+        }
+    }
+        #pragma omp taskwait
+    }
+}
+
 void matrix_mult_block3_NORMAL_NORMAL_specialization(
     double_matrix_t m1, double_matrix_t m2, double_matrix_t out, int block_max_size
 ) {
@@ -109,6 +143,21 @@ void matrix_mult_block3(double_matrix_t m1, double_matrix_t m2, double_matrix_t 
         matrix_mult_block3_NORMAL_NORMAL_specialization(m1, m2, out, block_max_size);
     } else if (m1.type == UPPER_TRIANGULAR_COLS && m2.type == NORMAL) {
         matrix_mult_block3_UPPER_TRIANGULAR_COLS_NORMAL_specialization(m1, m2, out, block_max_size);
+    } else {
+        fprintf(stderr, "Unknown how to multiply matrices of given types\n");
+        exit(1);
+    }
+}
+
+void matrix_omp_mult_block3(double_matrix_t m1, double_matrix_t m2, double_matrix_t out, int block_max_size) {
+    assert(out.nrows == m1.nrows && out.ncols == m2.ncols && m1.ncols == m2.nrows);
+    // Note: for now tested only square matrices, not squared multiplication
+    // might fail
+    assert(m1.ncols == m1.nrows && m2.ncols == m2.nrows);
+    
+    // FIXME rewrite with X macro
+    if (m1.type == UPPER_TRIANGULAR_COLS && m2.type == NORMAL) {
+        matrix_omp_mult_block3_UPPER_TRIANGULAR_COLS_NORMAL_specialization(m1, m2, out, block_max_size);
     } else {
         fprintf(stderr, "Unknown how to multiply matrices of given types\n");
         exit(1);
