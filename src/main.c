@@ -95,6 +95,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    if (block_size > dimension_size)
+        block_size = dimension_size;
+
     srand(random_seed);
 
     double_matrix_t A = matrix_allocate_upper_triangular_cols(dimension_size);
