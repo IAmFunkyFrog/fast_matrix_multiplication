@@ -95,6 +95,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    srand(random_seed);
+
     double_matrix_t A = matrix_allocate_upper_triangular_cols(dimension_size);
     double_matrix_t B = matrix_allocate(dimension_size, dimension_size);
 
