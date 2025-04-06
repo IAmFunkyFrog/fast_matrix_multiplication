@@ -19,20 +19,16 @@ function calculate_avg_and_dev() {
 
 # 32
 make -s
-((dims = 1024))
+((dims = 2880))
 ((diff = 256))
-((iter = 4))
+((iter = 1))
 type=$1
 
 echo "Dims,BlockSize,Avg,Dev"
 while [[ ${iter} -gt 0 ]] ; do
-    ((block_iter = 4))
-    ((block_size = 16))
-    while [[ ${block_iter} -gt 0 ]] ; do
-        res=$(calculate_avg_and_dev 10 $type)
+    for block_size in 16 32 80 120 240; do
+        res=$(calculate_avg_and_dev 3 $type)
         echo "$dims,$block_size,$res"
-        ((block_size *= 2))
-        ((block_iter -= 1))
     done
     ((dims += diff))
     ((iter -= 1))

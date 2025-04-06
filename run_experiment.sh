@@ -19,14 +19,14 @@ function calculate_avg_and_dev() {
 
 # 32
 make -s
-((dims = 1536))
+((dims = 2880))
 ((diff = 256))
-((iter = 5))
+((iter = 1))
 type=$1
 
 echo "Dims,Avg,Dev"
 while [[ ${iter} -gt 0 ]] ; do
-    res=$(calculate_avg_and_dev 10 $type)
+    res=$(calculate_avg_and_dev 3 $type)
     echo "$dims,$res"
 
     ((dims += diff))
