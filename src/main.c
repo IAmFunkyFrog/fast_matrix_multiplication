@@ -131,6 +131,7 @@ int main(int argc, char *argv[]) {
         case 3: {
             double_matrix_t A_blocked = matrix_convert_to_upper_triangular_blocked(A, block_size);
             double_matrix_t B_blocked = matrix_convert_to_normal_blocked(B, block_size);
+            result = matrix_convert_to_normal_blocked(result, block_size);
             TIME_ME(
                 matrix_mult_block3(A_blocked, B_blocked, result, block_size),
                 time_in_seconds
